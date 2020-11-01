@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest-cov = "*"
+pytest = "*"
+importlib-metadata = "~=1.7.0"
+flake8 = "*"
+
+[packages]
+awscli = "*"
+pandas = "*"
+xlrd = "*"
+pyarrow = "*"
+csci-utils = {editable = true, git = "https://github.com/csci-e-29/2020fa-csci-utils-woodytwoshoes"}
+numpy = "*"
+configparser = "*"
+click = "*"
+Sphinx = "*"
+python-dotenv = ">=0.5.1"
+
+[requires]
+python_version = "3.7"
