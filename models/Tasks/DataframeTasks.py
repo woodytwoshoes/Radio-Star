@@ -2,6 +2,7 @@ import logging
 from luigi import Task
 from luigi.parameter import BoolParameter
 from luigi.task import ExternalTask
+from luigi.parameter import IntParameter
 import luigi
 from csci_utils.luigi.dask.target import CSVTarget
 from csci_utils.luigi.dask.target import ParquetTarget
@@ -10,20 +11,26 @@ from csci_utils.luigi.task import Requires
 from csci_utils.luigi.task import TargetOutput
 from luigi.contrib.s3 import S3Target
 import pandas as pd
+import pandas as pd
+import numpy as np
+from dask import dataframe as dd
+from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
+from sklearn.preprocessing import LabelEncoder, normalize
+import dask.array as da
+
+from .normalize_functions import encode_objects_general, normalize_chex
+
 
 class ChexpertDataframe(ExternalTask):
 
-    s3_path = 's3://radio-star-csci-e-29/unzipped/'
+    s3_path = "s3://radio-star-csci-e-29/unzipped/"
 
     output = TargetOutput(
-        file_pattern="",
-        ext="train.csv",
-        target_class=S3Target,
-        path=s3_path
+        file_pattern="", ext="train.csv", target_class=S3Target, path=s3_path
     )
 
 
-class ProcessChexpertDf(Task):
+class ProcessChexpertDfToParquet(Task):
     requires = Requires()
     chexpertdf = Requirement(ChexpertDataframe)
 
@@ -39,3 +46,76 @@ class ProcessChexpertDf(Task):
         pathCSV = self.input()["chexpertdf"].path
         ddf = dd.read_csv(pathCSV)
         self.output().write_dask(ddf, compression="gzip")
+
+
+
+class NormalizeDF(Task):
+    """The Dataframe is best normalized before similarity calculations are
+    run on it."""
+
+
+    requires = Requires()
+    proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
+
+    output = TargetOutput(
+        target_class=ParquetTarget,
+        path="../data/processed/",
+        ext="",
+        flag=False,
+        storage_options=dict(requester_pays=True),
+    )
+
+    def run(self):
+        ddf = self.input()["proc_chexpertdf"].read_dask()
+        ddf_raw = ddf.copy()
+        ddf = ddf.drop(columns=['Path'])
+        object_cols = ddf.dtypes[(ddf.dtypes == object)].index.values
+
+        ddf = encode_objects_general(ddf, object_cols)
+
+        ddf = normalize_chex(ddf, object_cols)
+
+        self.output().write_dask(ddf, compression="gzip")
+
+
+class FindSimilar(Task):
+    """The Dataframe is best normalized before similarity calculations are
+    run on it."""
+
+    requires = Requires()
+    proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
+    normalize_df = Requirement(NormalizeDF)
+    comparator_index = IntParameter(default=37959)
+    n_images = IntParameter(default=5)
+
+    output = TargetOutput(
+        target_class=ParquetTarget,
+        path="../data/processed/",
+        ext="",
+        flag=False,
+        storage_options=dict(requester_pays=True),
+    )
+
+    def run(self):
+        ddf = self.input()["normalize_df"].read_dask()
+        ddf_raw = self.input()["proc_chexpertdf"].read_dask()
+
+        object_cols = ddf.dtypes[(ddf.dtypes == object)].index.values
+
+        row_comparator_raw = ddf.loc[self.comparator_index]
+
+        # This compensate for a bug in dask row equality calculations
+        row_comparator_na = row_comparator_raw.isna().compute().iloc[0]
+
+        similar_features_idx = (ddf.isna() == row_comparator_na).sum(
+            1).compute().nlargest(n=100).index
+
+        argsorted = nan_euclidean_distances(
+            row_comparator_raw.compute().values.reshape(1, -1),
+            ddf.loc[similar_features_idx.to_list()].compute().values).argsort()
+
+        top_n = similar_features_idx[argsorted][0][:self.n_images]
+
+        top_n_close_images = ddf_raw.loc[top_n]
+
+        self.output().write_dask(top_n_close_images, compression="gzip")
