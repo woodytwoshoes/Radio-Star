@@ -119,3 +119,26 @@ class FindSimilar(Task):
         top_n_close_images = ddf_raw.loc[top_n]
 
         self.output().write_dask(top_n_close_images, compression="gzip")
+
+
+class PullSimilarImages(Task):
+    """The Dataframe is best normalized before similarity calculations are
+    run on it."""
+
+    requires = Requires()
+    find_similar = Requirement(FindSimilar)
+    chexpert_data_images = Requirement(ChexpertDataImages)
+
+    output = TargetOutput(
+        target_class=Target,
+        path="../data/processed/",
+        ext="")
+
+    def run(self):
+        simil_dir_path = self.input()['find_similar'].path
+        simil_path = glob.glob(os.path.join(simil_dir_path, '*.parquet'))[0]
+        df = pd.read_parquet(simil_path)
+        s3_parent_dir = self.input()['chexpert_data_images'].path
+        for index, row in df_simil.iterrows():
+            rel_path = pathlib.Path(*pathlib.Path(row['Path']).parts[2:])
+            s3_img_path = os.path.join(s3_parent_dir, rel_path)
