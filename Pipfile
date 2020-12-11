@@ -6,20 +6,25 @@ verify_ssl = true
 [dev-packages]
 pytest-cov = "*"
 pytest = "*"
-importlib-metadata = "~=1.7.0"
 flake8 = "*"
+ipykernel = "*"
 
 [packages]
 awscli = "*"
 pandas = "*"
-xlrd = "*"
-pyarrow = "*"
 csci-utils = {editable = true, git = "https://github.com/csci-e-29/2020fa-csci-utils-woodytwoshoes"}
-numpy = "*"
+numpy = "==1.19.3"
 configparser = "*"
 click = "*"
 Sphinx = "*"
 python-dotenv = ">=0.5.1"
+importlib-metadata = "==1.7.0"
+toolz = "*"
+boto3 = "*"
+sklearn = "*"
+pillow = "*"
+matplotlib = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
