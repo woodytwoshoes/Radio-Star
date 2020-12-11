@@ -23,6 +23,7 @@ toolz = "*"
 boto3 = "*"
 sklearn = "*"
 pillow = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.7"
