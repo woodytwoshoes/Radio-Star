@@ -14,7 +14,7 @@ install:
 stages:
   - test
   - name: answers
-    if: branch = master
+    if: branch = main
 
 jobs:
   include:

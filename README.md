@@ -1,6 +1,10 @@
 radio-star
 ==============================
 
+[![Build Status](https://travis-ci.com/woodytwoshoes/Radio-Star.svg?branch=main)](https://travis-ci.com/woodytwoshoes/Radio-Star)
+
+
+
 An app used to fetch and present helpful images in radiology
 
 Project Organization
