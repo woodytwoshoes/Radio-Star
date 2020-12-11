@@ -1,8 +1,8 @@
 import logging
 from luigi import Task
-from luigi.parameter import BoolParameter
+from luigi.parameter import BoolParameter, IntParameter
 from luigi.task import ExternalTask
-from luigi.parameter import IntParameter
+from luigi.target import Target
 import luigi
 from csci_utils.luigi.dask.target import CSVTarget
 from csci_utils.luigi.dask.target import ParquetTarget
@@ -13,10 +13,13 @@ from luigi.contrib.s3 import S3Target
 import pandas as pd
 import pandas as pd
 import numpy as np
+import pathlib
 from dask import dataframe as dd
 from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
 from sklearn.preprocessing import LabelEncoder, normalize
 import dask.array as da
+import glob
+import matplotlib;
 
 from .normalize_functions import encode_objects_general, normalize_chex
 
@@ -85,7 +88,7 @@ class FindSimilar(Task):
     requires = Requires()
     proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
     normalize_df = Requirement(NormalizeDF)
-    comparator_index = IntParameter(default=37959)
+    comparator_index = IntParameter(default=78414)
     n_images = IntParameter(default=5)
 
     output = TargetOutput(
@@ -120,6 +123,16 @@ class FindSimilar(Task):
 
         self.output().write_dask(top_n_close_images, compression="gzip")
 
+class ChexpertDataBucket(ExternalTask):
+
+    s3_path = 's3://radio-star-csci-e-29/'
+
+    output = TargetOutput(
+        file_pattern="",
+        ext="",
+        target_class=S3Target,
+        path=s3_path
+    )
 
 class PullSimilarImages(Task):
     """The Dataframe is best normalized before similarity calculations are
@@ -127,7 +140,7 @@ class PullSimilarImages(Task):
 
     requires = Requires()
     find_similar = Requirement(FindSimilar)
-    chexpert_data_images = Requirement(ChexpertDataImages)
+    chexpert_data_images = Requirement(ChexpertDataBucket)
 
     output = TargetOutput(
         target_class=Target,

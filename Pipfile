@@ -24,6 +24,7 @@ boto3 = "*"
 sklearn = "*"
 pillow = "*"
 matplotlib = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
