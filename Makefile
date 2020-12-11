@@ -21,7 +21,7 @@ requirements: test_environment
 
 ## Make Dataset
 data: requirements
-	$(PYTHON_INTERPRETER) radiio-star-demo/data/make_dataset.py data/raw data/processed
+	$(PYTHON_INTERPRETER) radio-star-demo/data/make_dataset.py data/raw data/processed
 
 ## Delete all compiled Python files
 clean:
@@ -30,7 +30,7 @@ clean:
 
 ## Lint using flake8
 lint:
-	flake8 radiio-star-demo
+	flake8 radio-star-demo
 
 ## Upload Data to S3
 sync_data_to_s3:
