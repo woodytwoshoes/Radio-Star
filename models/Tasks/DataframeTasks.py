@@ -19,7 +19,7 @@ from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
 from sklearn.preprocessing import LabelEncoder, normalize
 import dask.array as da
 import glob
-import matplotlib;
+import matplotlib
 
 from .normalize_functions import encode_objects_general, normalize_chex
 
@@ -51,11 +51,9 @@ class ProcessChexpertDfToParquet(Task):
         self.output().write_dask(ddf, compression="gzip")
 
 
-
 class NormalizeDF(Task):
     """The Dataframe is best normalized before similarity calculations are
     run on it."""
-
 
     requires = Requires()
     proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
@@ -71,7 +69,7 @@ class NormalizeDF(Task):
     def run(self):
         ddf = self.input()["proc_chexpertdf"].read_dask()
         ddf_raw = ddf.copy()
-        ddf = ddf.drop(columns=['Path'])
+        ddf = ddf.drop(columns=["Path"])
         object_cols = ddf.dtypes[(ddf.dtypes == object)].index.values
 
         ddf = encode_objects_general(ddf, object_cols)
@@ -110,29 +108,28 @@ class FindSimilar(Task):
         # This compensate for a bug in dask row equality calculations
         row_comparator_na = row_comparator_raw.isna().compute().iloc[0]
 
-        similar_features_idx = (ddf.isna() == row_comparator_na).sum(
-            1).compute().nlargest(n=100).index
+        similar_features_idx = (
+            (ddf.isna() == row_comparator_na).sum(1).compute().nlargest(n=100).index
+        )
 
         argsorted = nan_euclidean_distances(
             row_comparator_raw.compute().values.reshape(1, -1),
-            ddf.loc[similar_features_idx.to_list()].compute().values).argsort()
+            ddf.loc[similar_features_idx.to_list()].compute().values,
+        ).argsort()
 
-        top_n = similar_features_idx[argsorted][0][:self.n_images]
+        top_n = similar_features_idx[argsorted][0][: self.n_images]
 
         top_n_close_images = ddf_raw.loc[top_n]
 
         self.output().write_dask(top_n_close_images, compression="gzip")
 
+
 class ChexpertDataBucket(ExternalTask):
 
-    s3_path = 's3://radio-star-csci-e-29/'
+    s3_path = "s3://radio-star-csci-e-29/"
 
-    output = TargetOutput(
-        file_pattern="",
-        ext="",
-        target_class=S3Target,
-        path=s3_path
-    )
+    output = TargetOutput(file_pattern="", ext="", target_class=S3Target, path=s3_path)
+
 
 class PullSimilarImages(Task):
     """The Dataframe is best normalized before similarity calculations are
@@ -142,16 +139,13 @@ class PullSimilarImages(Task):
     find_similar = Requirement(FindSimilar)
     chexpert_data_images = Requirement(ChexpertDataBucket)
 
-    output = TargetOutput(
-        target_class=Target,
-        path="../data/processed/",
-        ext="")
+    output = TargetOutput(target_class=Target, path="../data/processed/", ext="")
 
     def run(self):
-        simil_dir_path = self.input()['find_similar'].path
-        simil_path = glob.glob(os.path.join(simil_dir_path, '*.parquet'))[0]
+        simil_dir_path = self.input()["find_similar"].path
+        simil_path = glob.glob(os.path.join(simil_dir_path, "*.parquet"))[0]
         df = pd.read_parquet(simil_path)
-        s3_parent_dir = self.input()['chexpert_data_images'].path
+        s3_parent_dir = self.input()["chexpert_data_images"].path
         for index, row in df_simil.iterrows():
-            rel_path = pathlib.Path(*pathlib.Path(row['Path']).parts[2:])
+            rel_path = pathlib.Path(*pathlib.Path(row["Path"]).parts[2:])
             s3_img_path = os.path.join(s3_parent_dir, rel_path)
