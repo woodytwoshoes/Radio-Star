@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 
-def find_close_row(df, close_idx, column, value):
+def find_close_row(df, close_idx, column, value,row_comparator):
     closestidx = close_idx[df[column] == value] \
-        .drop(row_comparator.index.values[0], errors = 'ignore') \
+        .drop(row_comparator.compute().index.values[0], errors = 'ignore') \
         .idxmin()
     row = df.loc[closestidx]
     return row
@@ -19,12 +20,16 @@ def return_df_close_rows(df, row_comparator, close_idx):
             for value in (-1, 1):
 
                 try:
-                    row = find_close_row(df, close_idx, column, value)
-
+                    row = find_close_row(df, close_idx, column, value,row_comparator)
+                    print('succeeded on find similar for', column, encoded_dict[
+                        value])
                     df_case_control = pd.concat((df_case_control, row))
 
                 except:
+                    print('failed to find similar for', column, encoded_dict[
+                        value])
                     pass
+
             cols_hierarchy.append(column)
 
     mi = pd.MultiIndex.from_frame(df_case_control[cols_hierarchy])

@@ -134,8 +134,12 @@ class FindSimilar(Task):
 
         row_comparator_raw = ddf_raw.loc[self.comparator_index].compute()
 
+        print(df.shape)
+
         df_close_rows, mi_df = return_df_close_rows(df, row_comparator,
                                                    close_idx)
+
+        print(df_close_rows.shape)
 
         print('original row is: ')
         print(row_comparator_raw)
@@ -148,6 +152,8 @@ class FindSimilar(Task):
         self.output().write_dask(ddf_raw.loc[list(df_close_rows.index)],
                                  compression="gzip")
 
+    def complete(self):
+        return False
 
 
 
