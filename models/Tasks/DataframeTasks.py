@@ -1,5 +1,5 @@
 import logging
-from luigi import Task
+from luigi import Task, LocalTarget
 from luigi.parameter import BoolParameter, IntParameter
 from luigi.task import ExternalTask
 from luigi.target import Target
@@ -18,6 +18,10 @@ from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
 from .S3_image_functions import S3Images
 import dask.array as da
 import glob
+import os
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 from models.Tasks.process_df_funcs.normalize_functions import (
     encode_objects_general,
@@ -189,13 +193,14 @@ class PullSimilarImages(Task):
     find_similar = Requirement(FindSimilar)
     chexpert_data_images = Requirement(ChexpertDataBucket)
 
-    output = TargetOutput(target_class=Target, path="../data/processed/", ext="")
+    def output(self):
+        return LocalTarget('../data/processed/images/')
 
 
 
     def run(self):
         s3_bucket_path = ChexpertDataBucket().output().path
-        bucket = pathlib.Path(pathlib.Path(s3_bucket_path).parts[1])
+        bucket = str(pathlib.Path(pathlib.Path(s3_bucket_path).parts[1]))
         images = S3Images(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
                           aws_secret_access_key=os.environ[
                               'AWS_SECRET_ACCESS_KEY'],
@@ -204,13 +209,26 @@ class PullSimilarImages(Task):
         simil_dir_path = self.input()["find_similar"].path
         simil_path = glob.glob(os.path.join(simil_dir_path, "*.parquet"))[0]
         df_simil = pd.read_parquet(simil_path)
-        s3_parent_dir = self.input()["chexpert_data_images"].path
-        for index, row in df_simil.iterrows():
-            rel_path = pathlib.Path(*pathlib.Path(row["Path"]).parts[2:])
-            s3_img_path = os.path.join(s3_parent_dir, rel_path)
+        s3_parent_dir = pathlib.PurePosixPath(self.input()["chexpert_data_images"].path)
 
-            image = images.from_s3(bucket = bucket, key = key)
-            image.show()
+        fig = plt.figure(figsize= (10,10))
+        i = 1
+        for index, row in df_simil.iterrows():
+
+            rel_path = pathlib.PurePosixPath(*pathlib.Path(row["Path"]).parts[1:])
+            rel_path = pathlib.PurePosixPath('unzipped') / rel_path
+
+            s3_img_path = s3_parent_dir/rel_path
+            print('key/path is: ',s3_img_path)
+            print('bucket is: ', bucket)
+            print('key is: ', rel_path)
+            image = images.from_s3(bucket = bucket, key = str(rel_path))
+            fig.add_subplot(3,3, i).imshow(image,cmap = 'bone')
+            i += 1
+
+        plt.show()
+
+
 
 
 
