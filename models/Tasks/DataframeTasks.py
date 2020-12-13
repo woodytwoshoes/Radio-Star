@@ -15,6 +15,7 @@ import numpy as np
 import pathlib
 from dask import dataframe as dd
 from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
+from .S3_image_functions import S3Images
 import dask.array as da
 import glob
 
@@ -91,7 +92,6 @@ class FindSimilar(Task):
     proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
     normalize_df = Requirement(NormalizeDF)
     comparator_index = IntParameter(default=78414)
-    n_images = IntParameter(default=5)
 
     output = TargetOutput(
         target_class=ParquetTarget,
@@ -109,6 +109,12 @@ class FindSimilar(Task):
 
         row_comparator = ddf.loc[self.comparator_index]
 
+        # This is a cheap calculation to do as it only requires an equality
+        # and a summation (I estimate that it's on the order N_samples *
+        # N_features complexity. I used it to remain within the dask
+        # dataframe in terms of memory, and identify key indices which I can
+        # use as a subset to make a more expensive calculation below.
+
         most_similar_idx = (
             (ddf.values == row_comparator.values)
             .sum(axis=1)
@@ -117,13 +123,18 @@ class FindSimilar(Task):
             .argsort()[::-1]
         )
 
-
+        # In preparation for euclidian distances, I select a likely subset of
+        # the data
 
         idx_partition_to_view = most_similar_idx[: int(most_similar_idx.size / 5)]
+
         # Here we set our indices to sample only 1/5 of the dataset,
-        # that which is closest to our images
+        # that which is closest to our images.
 
         df = ddf.loc[idx_partition_to_view].compute()
+
+        # Another possible method here is k-nearest neighbours. However,
+        # this is difficult to implement with dask
 
         dist_in_space = nan_euclidean_distances(df.fillna(0), df.loc[
             self.comparator_index].fillna(0).values.reshape(1,-1))
@@ -135,6 +146,12 @@ class FindSimilar(Task):
         row_comparator_raw = ddf_raw.loc[self.comparator_index].compute()
 
         print(df.shape)
+
+        # the limitation of using df_close_rows is that, if it cannot find a
+        # row which meets the condition within the idx_partition_to_view (our
+        # subset), then it returns 'fail'. I believe this is a compromise
+        # rather than committing a huge amount of compute power to find
+        # distant neighbours within the full dataset.
 
         df_close_rows, mi_df = return_df_close_rows(df, row_comparator,
                                                    close_idx)
@@ -149,11 +166,11 @@ class FindSimilar(Task):
 
         print(list(df_close_rows.index))
 
+        ddf_raw.loc[list(df_close_rows.index)].to_parquet(self.output().path + str('/Similar.parquet'))
+
         self.output().write_dask(ddf_raw.loc[list(df_close_rows.index)],
                                  compression="gzip")
 
-    def complete(self):
-        return False
 
 
 
@@ -174,14 +191,26 @@ class PullSimilarImages(Task):
 
     output = TargetOutput(target_class=Target, path="../data/processed/", ext="")
 
+
+
     def run(self):
+        s3_bucket_path = ChexpertDataBucket().output().path
+        bucket = pathlib.Path(pathlib.Path(s3_bucket_path).parts[1])
+        images = S3Images(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                          aws_secret_access_key=os.environ[
+                              'AWS_SECRET_ACCESS_KEY'],
+                          region_name='ap-southeast-2')
+
         simil_dir_path = self.input()["find_similar"].path
         simil_path = glob.glob(os.path.join(simil_dir_path, "*.parquet"))[0]
-        df = pd.read_parquet(simil_path)
+        df_simil = pd.read_parquet(simil_path)
         s3_parent_dir = self.input()["chexpert_data_images"].path
         for index, row in df_simil.iterrows():
             rel_path = pathlib.Path(*pathlib.Path(row["Path"]).parts[2:])
             s3_img_path = os.path.join(s3_parent_dir, rel_path)
+
+            image = images.from_s3(bucket = bucket, key = key)
+            image.show()
 
 
 
