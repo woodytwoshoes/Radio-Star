@@ -214,7 +214,7 @@ class PullSimilarImages(Task):
         fig = plt.figure(figsize= (10,10))
         i = 1
         for index, row in df_simil.iterrows():
-
+            l = df_simil.shape[0]
             rel_path = pathlib.PurePosixPath(*pathlib.Path(row["Path"]).parts[1:])
             rel_path = pathlib.PurePosixPath('unzipped') / rel_path
 
@@ -223,7 +223,8 @@ class PullSimilarImages(Task):
             print('bucket is: ', bucket)
             print('key is: ', rel_path)
             image = images.from_s3(bucket = bucket, key = str(rel_path))
-            fig.add_subplot(3,3, i).imshow(image,cmap = 'bone')
+            fig.add_subplot(int(l/3)+1,3, i).imshow(image,cmap = 'bone')
+
             i += 1
 
         plt.show()
