@@ -32,8 +32,6 @@ Project Organization
     │   │   ├── processed      <- The final, canonical data sets for modeling.
     │   │   └── raw            <- The original, immutable data dump.
     │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
     │   │
     │   ├── models                   
     │   │   ├── helper functions <- Scripts to assist in doing vector calculations on dataframes, and manipualting images
