@@ -20,7 +20,7 @@ import dask.array as da
 import glob
 import os
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from models.Tasks.process_df_funcs.normalize_functions import (
