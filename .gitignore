@@ -81,11 +81,11 @@ notebooks
 notebooks/
 
 # exclude data from source control by default
-/data/external
-/data/interim
-/data/processed
-/data/raw
-/data/.ipynb_checkpoints
+/radio-star-demo/data/external
+/radio-star-demo/data/interim
+/radio-star-demo/data/processed
+/radio-star-demo/data/raw
+/radio-star-demo/data/.ipynb_checkpoints
 
 # Mac OS-specific storage files
 .DS_Store
