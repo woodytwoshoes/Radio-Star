@@ -1,34 +1,26 @@
-import logging
 from luigi import Task, LocalTarget
-from luigi.parameter import BoolParameter, IntParameter
+from luigi.parameter import IntParameter
 from luigi.task import ExternalTask
-from luigi.target import Target
-import luigi
-from csci_utils.luigi.dask.target import CSVTarget
 from csci_utils.luigi.dask.target import ParquetTarget
 from csci_utils.luigi.task import Requirement
 from csci_utils.luigi.task import Requires
 from csci_utils.luigi.task import TargetOutput
 from luigi.contrib.s3 import S3Target
 import pandas as pd
-import numpy as np
 import pathlib
 from dask import dataframe as dd
-from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
-from .S3_image_functions import S3Images
-import dask.array as da
+from sklearn.metrics.pairwise import nan_euclidean_distances
+from models.helper_functions.process_image_functions.S3_image_functions import S3Images
 import glob
 import os
-import matplotlib
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-from models.Tasks.process_df_funcs.normalize_functions import (
+from models.helper_functions.process_df_funcs.normalize_functions import (
     encode_objects_general,
     normalize_chex,
 )
-from models.Tasks.process_df_funcs.proximity_functions import (
-    find_close_row,
+from models.helper_functions.process_df_funcs.proximity_functions import (
     return_df_close_rows,
 )
 
