@@ -1,5 +1,5 @@
 import logging
-from luigi import Task
+from luigi import Task, LocalTarget
 from luigi.parameter import BoolParameter, IntParameter
 from luigi.task import ExternalTask
 from luigi.target import Target
@@ -11,17 +11,26 @@ from csci_utils.luigi.task import Requires
 from csci_utils.luigi.task import TargetOutput
 from luigi.contrib.s3 import S3Target
 import pandas as pd
-import pandas as pd
 import numpy as np
 import pathlib
 from dask import dataframe as dd
 from sklearn.metrics.pairwise import cosine_similarity, nan_euclidean_distances
-from sklearn.preprocessing import LabelEncoder, normalize
+from .S3_image_functions import S3Images
 import dask.array as da
 import glob
+import os
 import matplotlib
+# matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
-from .normalize_functions import encode_objects_general, normalize_chex
+from models.Tasks.process_df_funcs.normalize_functions import (
+    encode_objects_general,
+    normalize_chex,
+)
+from models.Tasks.process_df_funcs.proximity_functions import (
+    find_close_row,
+    return_df_close_rows,
+)
 
 
 class ChexpertDataframe(ExternalTask):
@@ -48,6 +57,7 @@ class ProcessChexpertDfToParquet(Task):
     def run(self):
         pathCSV = self.input()["chexpertdf"].path
         ddf = dd.read_csv(pathCSV)
+
         self.output().write_dask(ddf, compression="gzip")
 
 
@@ -75,7 +85,6 @@ class NormalizeDF(Task):
         ddf = encode_objects_general(ddf, object_cols)
 
         ddf = normalize_chex(ddf, object_cols)
-
         self.output().write_dask(ddf, compression="gzip")
 
 
@@ -87,7 +96,6 @@ class FindSimilar(Task):
     proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
     normalize_df = Requirement(NormalizeDF)
     comparator_index = IntParameter(default=78414)
-    n_images = IntParameter(default=5)
 
     output = TargetOutput(
         target_class=ParquetTarget,
@@ -101,27 +109,73 @@ class FindSimilar(Task):
         ddf = self.input()["normalize_df"].read_dask()
         ddf_raw = self.input()["proc_chexpertdf"].read_dask()
 
-        object_cols = ddf.dtypes[(ddf.dtypes == object)].index.values
+        object_cols = ddf_raw.dtypes[(ddf_raw.dtypes == object).values]
 
-        row_comparator_raw = ddf.loc[self.comparator_index]
+        row_comparator = ddf.loc[self.comparator_index]
 
-        # This compensate for a bug in dask row equality calculations
-        row_comparator_na = row_comparator_raw.isna().compute().iloc[0]
+        # This is a cheap calculation to do as it only requires an equality
+        # and a summation (I estimate that it's on the order N_samples *
+        # N_features complexity. I used it to remain within the dask
+        # dataframe in terms of memory, and identify key indices which I can
+        # use as a subset to make a more expensive calculation below.
 
-        similar_features_idx = (
-            (ddf.isna() == row_comparator_na).sum(1).compute().nlargest(n=100).index
+        most_similar_idx = (
+            (ddf.values == row_comparator.values)
+            .sum(axis=1)
+            .astype("int")
+            .compute()
+            .argsort()[::-1]
         )
 
-        argsorted = nan_euclidean_distances(
-            row_comparator_raw.compute().values.reshape(1, -1),
-            ddf.loc[similar_features_idx.to_list()].compute().values,
-        ).argsort()
+        # In preparation for euclidian distances, I select a likely subset of
+        # the data
 
-        top_n = similar_features_idx[argsorted][0][: self.n_images]
+        idx_partition_to_view = most_similar_idx[: int(most_similar_idx.size / 5)]
 
-        top_n_close_images = ddf_raw.loc[top_n]
+        # Here we set our indices to sample only 1/5 of the dataset,
+        # that which is closest to our images.
 
-        self.output().write_dask(top_n_close_images, compression="gzip")
+        df = ddf.loc[idx_partition_to_view].compute()
+
+        # Another possible method here is k-nearest neighbours. However,
+        # this is difficult to implement with dask
+
+        dist_in_space = nan_euclidean_distances(df.fillna(0), df.loc[
+            self.comparator_index].fillna(0).values.reshape(1,-1))
+
+        close_idx = pd.DataFrame(data=dist_in_space, index=df.index)
+
+        print(close_idx[:10])
+
+        row_comparator_raw = ddf_raw.loc[self.comparator_index].compute()
+
+        print(df.shape)
+
+        # the limitation of using df_close_rows is that, if it cannot find a
+        # row which meets the condition within the idx_partition_to_view (our
+        # subset), then it returns 'fail'. I believe this is a compromise
+        # rather than committing a huge amount of compute power to find
+        # distant neighbours within the full dataset.
+
+        df_close_rows, mi_df = return_df_close_rows(df, row_comparator,
+                                                   close_idx)
+
+        print(df_close_rows.shape)
+
+        print('original row is: ')
+        print(row_comparator_raw)
+
+        print('close image ids are: ')
+        print(mi_df)
+
+        print(list(df_close_rows.index))
+
+        ddf_raw.loc[list(df_close_rows.index)].to_parquet(self.output().path + str('/Similar.parquet'))
+
+        self.output().write_dask(ddf_raw.loc[list(df_close_rows.index)],
+                                 compression="gzip")
+
+
 
 
 class ChexpertDataBucket(ExternalTask):
@@ -139,13 +193,43 @@ class PullSimilarImages(Task):
     find_similar = Requirement(FindSimilar)
     chexpert_data_images = Requirement(ChexpertDataBucket)
 
-    output = TargetOutput(target_class=Target, path="../data/processed/", ext="")
+    def output(self):
+        return LocalTarget('../data/processed/images/')
+
+
 
     def run(self):
+        s3_bucket_path = ChexpertDataBucket().output().path
+        bucket = str(pathlib.Path(pathlib.Path(s3_bucket_path).parts[1]))
+        images = S3Images(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+                          aws_secret_access_key=os.environ[
+                              'AWS_SECRET_ACCESS_KEY'],
+                          region_name='ap-southeast-2')
+
         simil_dir_path = self.input()["find_similar"].path
         simil_path = glob.glob(os.path.join(simil_dir_path, "*.parquet"))[0]
-        df = pd.read_parquet(simil_path)
-        s3_parent_dir = self.input()["chexpert_data_images"].path
+        df_simil = pd.read_parquet(simil_path)
+        s3_parent_dir = pathlib.PurePosixPath(self.input()["chexpert_data_images"].path)
+
+        fig = plt.figure(figsize= (10,10))
+        i = 1
         for index, row in df_simil.iterrows():
-            rel_path = pathlib.Path(*pathlib.Path(row["Path"]).parts[2:])
-            s3_img_path = os.path.join(s3_parent_dir, rel_path)
+            l = df_simil.shape[0]
+            rel_path = pathlib.PurePosixPath(*pathlib.Path(row["Path"]).parts[1:])
+            rel_path = pathlib.PurePosixPath('unzipped') / rel_path
+
+            s3_img_path = s3_parent_dir/rel_path
+            print('key/path is: ',s3_img_path)
+            print('bucket is: ', bucket)
+            print('key is: ', rel_path)
+            image = images.from_s3(bucket = bucket, key = str(rel_path))
+            fig.add_subplot(int(l/3)+1,3, i).imshow(image,cmap = 'bone')
+
+            i += 1
+
+        plt.show()
+
+
+
+
+
