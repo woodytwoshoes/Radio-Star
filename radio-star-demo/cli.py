@@ -25,11 +25,16 @@ parser.add_argument(
     help="The index of the image we are seeking to interpet. All other images found will be similar to this comparator image. Default value is chosen in order to fetch a chest x ray with interesting and clear features.",
 )
 
+
 def main(args=None):
     args = parser.parse_args(args=args)
-    pipeline = [FindSimilar(comparator_index = args.index_of_comparator,
-                            fractional_search = args.fractional_search),
-                PullSimilarImages()]
+    pipeline = [
+        FindSimilar(
+            comparator_index=args.index_of_comparator,
+            fractional_search=args.fractional_search,
+        ),
+        PullSimilarImages(),
+    ]
     build(
         pipeline,
         local_scheduler=True,
