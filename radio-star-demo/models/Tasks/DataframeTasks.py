@@ -223,7 +223,7 @@ class PullSimilarImages(Task):
 
         plt.show()
 
-        print('similar images successfully shown')
+        print('similar images SUCCESSFULLY shown')
 
 
 
