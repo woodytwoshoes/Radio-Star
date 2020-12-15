@@ -1,4 +1,4 @@
-from models.Tasks.DataframeTasks import FindSimilar, PullSimilarImages
+from .models.Tasks.DataframeTasks import FindSimilar, PullSimilarImages
 from luigi import build
 
 
