@@ -1,23 +1,26 @@
-from luigi import Task, LocalTarget
-from luigi.parameter import IntParameter, FloatParameter
-from luigi.task import ExternalTask
-from csci_utils.luigi.dask.target import ParquetTarget
-from csci_utils.luigi.task import Requirement
-from csci_utils.luigi.task import Requires
-from csci_utils.luigi.task import TargetOutput
-from luigi.contrib.s3 import S3Target
+import glob
+import os
+import matplotlib.pyplot as plt
+import logging
 import pandas as pd
 import pathlib
 from dask import dataframe as dd
 from sklearn.metrics.pairwise import nan_euclidean_distances
+
+from luigi import Task, LocalTarget
+from luigi.parameter import IntParameter, FloatParameter
+from luigi.task import ExternalTask
+from luigi.contrib.s3 import S3Target
+
+from csci_utils.luigi.dask.target import ParquetTarget
+from csci_utils.luigi.task import Requirement
+from csci_utils.luigi.task import Requires
+from csci_utils.luigi.task import TargetOutput
+
+
+
 from ..helper_functions.process_image_functions.S3_image_functions \
     import S3Images
-import glob
-import os
-# matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import logging
-
 from ..helper_functions.process_df_funcs.normalize_functions import (
     encode_objects_general,
     normalize_chex,
@@ -188,17 +191,14 @@ class PullSimilarImages(Task):
     chexpert_data_images = Requirement(ChexpertDataBucket)
 
     def output(self):
-        return LocalTarget('../data/processed/images/')
+        return LocalTarget('../data/processed/images_plot.jpg')
 
 
 
     def run(self):
         s3_bucket_path = ChexpertDataBucket().output().path
         bucket = str(pathlib.Path(pathlib.Path(s3_bucket_path).parts[1]))
-        images = S3Images(aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
-                          aws_secret_access_key=os.environ[
-                              'AWS_SECRET_ACCESS_KEY'],
-                          region_name='ap-southeast-2')
+        images = S3Images()
 
         simil_dir_path = self.input()["find_similar"].path
         simil_path = glob.glob(os.path.join(simil_dir_path, "*.parquet"))[0]
@@ -213,17 +213,19 @@ class PullSimilarImages(Task):
             rel_path = pathlib.PurePosixPath('unzipped') / rel_path
 
             s3_img_path = s3_parent_dir/rel_path
-            print('key/path is: ',s3_img_path)
-            print('bucket is: ', bucket)
-            print('key is: ', rel_path)
+            logging.info('key/path is: ',s3_img_path)
+            logging.info('bucket is: ', bucket)
+            logging.info('key is: ', rel_path)
             image = images.from_s3(bucket = bucket, key = str(rel_path))
             fig.add_subplot(int(l/3)+1,3, i).imshow(image,cmap = 'bone')
 
             i += 1
 
         plt.show()
-
-        print('similar images SUCCESSFULLY shown')
+        with self.output().temporary_path() as f:
+            plt.savefig(f, format =
+                        'jpg')
+        print('similar images SUCCESSFULLY displayed and saved')
 
 
 
