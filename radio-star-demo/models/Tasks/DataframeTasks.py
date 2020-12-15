@@ -1,5 +1,5 @@
 from luigi import Task, LocalTarget
-from luigi.parameter import IntParameter
+from luigi.parameter import IntParameter, FloatParameter
 from luigi.task import ExternalTask
 from csci_utils.luigi.dask.target import ParquetTarget
 from csci_utils.luigi.task import Requirement
@@ -10,17 +10,19 @@ import pandas as pd
 import pathlib
 from dask import dataframe as dd
 from sklearn.metrics.pairwise import nan_euclidean_distances
-from models.helper_functions.process_image_functions.S3_image_functions import S3Images
+from ..helper_functions.process_image_functions.S3_image_functions \
+    import S3Images
 import glob
 import os
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import logging
 
-from models.helper_functions.process_df_funcs.normalize_functions import (
+from ..helper_functions.process_df_funcs.normalize_functions import (
     encode_objects_general,
     normalize_chex,
 )
-from models.helper_functions.process_df_funcs.proximity_functions import (
+from ..helper_functions.process_df_funcs.proximity_functions import (
     return_df_close_rows,
 )
 
@@ -88,6 +90,8 @@ class FindSimilar(Task):
     proc_chexpertdf = Requirement(ProcessChexpertDfToParquet)
     normalize_df = Requirement(NormalizeDF)
     comparator_index = IntParameter(default=78414)
+    fractional_search = FloatParameter(default = 0.2)
+
 
     output = TargetOutput(
         target_class=ParquetTarget,
@@ -122,10 +126,12 @@ class FindSimilar(Task):
         # In preparation for euclidian distances, I select a likely subset of
         # the data
 
-        idx_partition_to_view = most_similar_idx[: int(most_similar_idx.size / 5)]
+        idx_partition_to_view = most_similar_idx[: int(most_similar_idx.size
+                                                       * self.fractional_search)]
 
         # Here we set our indices to sample only 1/5 of the dataset,
-        # that which is closest to our images.
+        # that which is closest to our images. And go to pandas for the
+        # euclidian distance calculation
 
         df = ddf.loc[idx_partition_to_view].compute()
 
@@ -137,11 +143,11 @@ class FindSimilar(Task):
 
         close_idx = pd.DataFrame(data=dist_in_space, index=df.index)
 
-        print(close_idx[:10])
+        logging.info('retrieved list of close indices')
 
         row_comparator_raw = ddf_raw.loc[self.comparator_index].compute()
 
-        print(df.shape)
+        logging.info('df shape is '+ str(df.shape[0]) + ',' + str(df.shape[1]))
 
         # the limitation of using df_close_rows is that, if it cannot find a
         # row which meets the condition within the idx_partition_to_view (our
@@ -152,15 +158,11 @@ class FindSimilar(Task):
         df_close_rows, mi_df = return_df_close_rows(df, row_comparator,
                                                    close_idx)
 
-        print(df_close_rows.shape)
-
-        print('original row is: ')
+        print('original feature values are: ')
         print(row_comparator_raw)
 
         print('close image ids are: ')
         print(mi_df)
-
-        print(list(df_close_rows.index))
 
         ddf_raw.loc[list(df_close_rows.index)].to_parquet(self.output().path + str('/Similar.parquet'))
 
@@ -220,6 +222,8 @@ class PullSimilarImages(Task):
             i += 1
 
         plt.show()
+
+        print('similar images successfully shown')
 
 
 
