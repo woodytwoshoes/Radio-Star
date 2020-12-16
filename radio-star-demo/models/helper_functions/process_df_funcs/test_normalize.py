@@ -2,7 +2,7 @@ import unittest
 import pandas as pd
 import numpy as np
 from dask import dataframe as dd
-from normalize_functions import (
+from .normalize_functions import (
     encode_objects_general,
     normalize_general,
     normalize_chex,
