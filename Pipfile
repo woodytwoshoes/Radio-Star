@@ -10,6 +10,7 @@ flake8 = "*"
 ipykernel = "*"
 seaborn = "*"
 moto = "*"
+tabulate = "*"
 
 [packages]
 awscli = "*"
