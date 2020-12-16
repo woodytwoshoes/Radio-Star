@@ -25,7 +25,7 @@ boto3 = "*"
 sklearn = "*"
 pillow = "*"
 matplotlib = "*"
-
+moto = "*"
 
 [requires]
 python_version = "3.7"
