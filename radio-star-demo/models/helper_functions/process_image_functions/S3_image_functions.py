@@ -47,3 +47,19 @@ class S3Images(object):
         sent_data = self.s3.put_object(Bucket=bucket, Key=key, Body=buffer)
         if sent_data["ResponseMetadata"]["HTTPStatusCode"] != 200:
             raise Exception("failed to upload")
+
+# from https://gist.github.com/ghandic/a48f450f3c011f44d42eea16a0c7014d
+    def __get_safe_ext(self, key):
+        ext = os.path.splitext(key)[-1].strip('.').upper()
+        if ext in ['JPG', 'JPEG']:
+            return 'JPEG'
+        elif ext in ['PNG']:
+            return 'PNG'
+        else:
+            raise S3ImagesInvalidExtension('Extension is invalid')
+
+class S3ImagesInvalidExtension(Exception):
+    pass
+
+class S3ImagesUploadFailed(Exception):
+    pass
