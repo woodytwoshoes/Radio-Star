@@ -7,7 +7,7 @@ To run
 ```
 python -m radio-star-demo
 ```
-Note:f running app without S3 credentials, S3 bucket name and folder will need configuration. Email me for access.
+Note: If running app without appropriate S3 credentials, the S3 bucket name and folder will need configuration. Email me for access, as access is restricted as per the Stanford Chexpert agreement.
 
 ### What is Radio-Star?
 
@@ -77,8 +77,9 @@ Hospital current practices, regulations, monopolies vs innovators, ambitions, co
 ![left-sided pneumothorax](readme_images/output_10_0.png)
 
 ## What does our data look like?
-'|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |\n|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|\n| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |'
-![our data](readme_images/output_12_1.png)
+|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |
+|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|
+| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |![our data](readme_images/output_12_1.png)
 
 - These features are derived from the freetext radiology reports written by Radiologist doctors.
 
@@ -99,11 +100,17 @@ If I write the software well
 
 - these images have similar mentions of features, and similar feature values, with one chosen difference
 
-|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |\n|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|\n| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |\n| 29247 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | NEGATIVE    | NEGATIVE      | POSITIVE       | POSITIVE           | unmentioned     | unmentioned | unmentioned       |
+|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |
+|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|
+| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |
+| 29247 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | NEGATIVE    | NEGATIVE      | POSITIVE       | POSITIVE           | unmentioned     | unmentioned | unmentioned       |
 
 ![im](readme_images/output_16_1.png)
 
-'|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |\n|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|\n| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |\n| 43170 | Female |    78 | Frontal           | AP      | unmentioned  | POSITIVE                     | POSITIVE       | POSITIVE       | unmentioned   | NEGATIVE    | unmentioned     | POSITIVE    | unmentioned   | NEGATIVE       | POSITIVE           | unmentioned     | unmentioned | unmentioned       |'
+|       | Sex    |   Age | Frontal/Lateral   | AP/PA   | No Finding   | Enlarged Cardiomediastinum   | Cardiomegaly   | Lung Opacity   | Lung Lesion   | Edema       | Consolidation   | Pneumonia   | Atelectasis   | Pneumothorax   | Pleural Effusion   | Pleural Other   | Fracture    | Support Devices   |
+|------:|:-------|------:|:------------------|:--------|:-------------|:-----------------------------|:---------------|:---------------|:--------------|:------------|:----------------|:------------|:--------------|:---------------|:-------------------|:----------------|:------------|:------------------|
+| 78414 | Female |    40 | Frontal           | AP      | unmentioned  | unmentioned                  | unmentioned    | POSITIVE       | unmentioned   | unmentioned | unmentioned     | POSITIVE    | unmentioned   | POSITIVE       | unmentioned        | unmentioned     | unmentioned | unmentioned       |
+| 43170 | Female |    78 | Frontal           | AP      | unmentioned  | POSITIVE                     | POSITIVE       | POSITIVE       | unmentioned   | NEGATIVE    | unmentioned     | POSITIVE    | unmentioned   | NEGATIVE       | POSITIVE           | unmentioned     | unmentioned | unmentioned       |
 
 ![im](readme_images/output_17_1.png)
 
