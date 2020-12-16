@@ -9,6 +9,8 @@ pytest = "*"
 flake8 = "*"
 ipykernel = "*"
 seaborn = "*"
+moto = "*"
+tabulate = "*"
 
 [packages]
 awscli = "*"
@@ -25,7 +27,6 @@ boto3 = "*"
 sklearn = "*"
 pillow = "*"
 matplotlib = "*"
-
 
 [requires]
 python_version = "3.7"
