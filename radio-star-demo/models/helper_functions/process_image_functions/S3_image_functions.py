@@ -18,7 +18,7 @@ class S3Images(object):
     ):
         """All parameters can be passed as strings. If none are passed,
         then the parameters will be attempted to be accessed from the
-        environmental variables."""
+        environmental variables (or revert to default)."""
 
         if aws_access_key_id is None:
             aws_access_key_id = os.environ["AWS_ACCESS_KEY_ID"]
@@ -45,5 +45,5 @@ class S3Images(object):
         img.save(buffer, self.__get_safe_ext(key))
         buffer.seek(0)
         sent_data = self.s3.put_object(Bucket=bucket, Key=key, Body=buffer)
-        if sent_data['ResponseMetadata']['HTTPStatusCode'] != 200:
-            raise S3ImagesUploadFailed('Failed to upload image {} to bucket {}'.format(key, bucket))
+        if sent_data["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            raise Exception("failed to upload")
