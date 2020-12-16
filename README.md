@@ -3,9 +3,15 @@ radio-star
 
 [![Build Status](https://travis-ci.com/woodytwoshoes/Radio-Star.svg?branch=main)](https://travis-ci.com/woodytwoshoes/Radio-Star)
 
+To run
+```
+python -m radio-star-demo
+```
+Note:f running app without S3 credentials, S3 bucket name and folder will need configuration. Email me for access.
 
+### What is Radio-Star?
 
-An app used to fetch and present helpful images in radiology
+An app used to search for and present case and control images to radiologist in order to facilitate more accurate interpretation.
 
 Project Organization
 ------------
